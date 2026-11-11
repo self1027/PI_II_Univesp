@@ -1,40 +1,82 @@
-# Export — Gold → Supabase
+# Como exportar a Gold para o Supabase
 
-Notebook de transferência de `workspace.pi_ii_gold` para o PostgreSQL Supabase.
+O notebook `EXPORT_supabase_postgresql.ipynb` copia as 26 tabelas da Gold para o
+PostgreSQL usado pela aplicação. O período de análise continua sendo **2025**.
+Registros relacionados de outros anos também podem estar presentes para explicar
+o histórico e manter as relações entre tabelas.
 
-## Arquivos
+Antes de executar, leia [Como os dados são tratados e conferidos](../METODOLOGIA_DADOS.md).
+Esse guia explica os IDs de movimentos, os indicadores e os termos usados aqui.
 
-- `EXPORT_supabase_postgresql.ipynb`: notebook para Databricks (versão a publicar no GitHub).
+## O que precisa estar pronto
 
-## Pré-requisitos
+1. Silver e Gold concluídas, executadas nessa ordem.
+2. Banco de destino preparado conforme o [guia das migrations](../supabase/migrations/README.md).
+   O exportador não cria nem altera a estrutura das tabelas.
+3. Credenciais no Secret Scope `legisanalytica_supabase`, que é o local de segredos
+   do Databricks. As chaves esperadas são `jdbc_url`, `user` e `password`.
+4. Biblioteca `psycopg` v3 e a biblioteca de sistema `libpq` disponíveis no ambiente.
+   Instale o `psycopg` em uma célula separada, reinicie a sessão e mantenha
+   `PSYCOPG_IMPL=python` antes do import, como já está no notebook.
 
-1. Executar `../supabase/migrations/001_initial_schema_supabase.sql` no SQL Editor do projeto de destino (apenas para banco vazio). O notebook também verifica se o schema existe e aplica a migration automaticamente quando o banco está vazio.
-2. Secret Scope `legisanalytica_supabase` com `jdbc_url`, `user` e `password` atualizados.
-3. Driver `psycopg` v3 no Databricks, instalado separadamente, com `PSYCOPG_IMPL=python` antes do import.
-4. Permissão de leitura na Gold e conexão funcional com o novo projeto Supabase.
+Na primeira carga corrigida, use uma **base separada**. A versão antiga identifica
+despesas da Câmara pelo documento; a nova identifica cada movimento. Misturar
+esses IDs deixaria registros antigos e novos no mesmo conjunto.
 
-## Recorte e relacionamentos
+## Os três modos de execução
 
-- **01/01/2025 a 31/12/2025** (um ano-calendário completo).
-- Despesas e total publicado por `ano=2025`; votações por `data_votacao`.
-- Proposições apresentadas em 2025 **mais** proposições anteriores referenciadas por votações de 2025, necessárias para preservar FKs. Algumas proposições podem ter `data_apresentacao` anterior a 2025: não classificá-las como novas proposições do ano.
-- Votações de 2025 **mais** votações vinculadas a qualquer proposição exportada. Isso preserva a situação de propostas antigas que foram votadas e recupera os vínculos de votação do Senado existentes no Gold.
-- `autoria`, `status_atual` e `votacao_proposicao` seguem as entidades selecionadas; `valor_despesa` segue as despesas e `voto` segue as votações exportadas.
-- Catálogos e relacionamentos cadastrais permanecem completos quando necessários.
-- Votações sem `data_votacao` não entram no recorte por falta de data para classificação.
+Escolha o modo na variável `EXPORT_MODE` e execute o notebook em ordem.
 
-## Procedimento seguro
+| Modo | O que faz | Grava dados? |
+|---|---|---|
+| `prepare` | Confere origem, estrutura do banco e chaves existentes. | Não. |
+| `pilot` | Carrega um conjunto pequeno com seus registros relacionados. | Sim. |
+| `full` | Carrega o recorte completo e confere o resultado. | Sim. |
 
-1. O notebook inicia com `EXPORT_MODE = "prepare"` (**não escreve** no banco).
-2. Para testar a inserção de dois registros de `casa`, trocar para `EXPORT_MODE = "pilot"`.
-3. Conferir `public.casa`, o tamanho do PostgreSQL e a métrica **Disk** no painel do Supabase.
-4. Somente depois, trocar para `EXPORT_MODE = "full"` para exportar as 26 tabelas.
-5. Antes da primeira escrita, o notebook valida as constraints da migration (NOT NULL, PKs, UNIQUE, VARCHAR) e o schema de destino; qualquer violação aborta a execução sem gravar.
-6. O notebook utiliza lotes de 5.000 e `ON CONFLICT DO NOTHING`: evita duplicações em novas tentativas, **mas não atualiza registros já existentes**.
-7. Falhas de lote interrompem a carga; commits anteriores são mantidos. Na execução integral, a validação compara contagens por tabela e executa 46 verificações de integridade referencial (FKs).
+Comece por `prepare`. Se passar, execute `pilot` e confira os resultados antes de
+executar `full`. Use o mesmo recorte ao passar do piloto para a carga completa.
 
-## Limites e cautelas
+O piloto seleciona até cinco despesas por Casa/ano/mês disponível e cinco votações
+e proposições por Casa. Também carrega os registros necessários aos relacionamentos;
+por exemplo, a proposta de uma votação selecionada. Cadastros e catálogos ficam completos.
+A seleção usa uma ordem calculada por hash, para repetir a escolha com a mesma origem.
+**O piloto serve para testar a carga, não para calcular indicadores da população.**
 
-- O monitoramento consulta tamanho do banco e WAL, com limites conservadores e interrupção em caso de falha na medição. **Isso não mede todo o disco físico**. Consulte regularmente o painel Disk do Supabase; o próprio banco pode sofrer restrições de escrita.
-- Não há garantia de que o recorte caiba no Free antes da medição após a carga-piloto.
-- Não publicar o notebook temporário de cadastro de secrets, senhas, tokens, logs de conexão ou dados sensíveis no GitHub.
+## O que conferir antes de usar a nova base
+
+- O preflight deve terminar sem erros. Ele verifica campos obrigatórios, chaves,
+  relações entre tabelas, competências, valores e compatibilidade com o destino.
+- A reconciliação deve confirmar a mesma quantidade e o mesmo resumo do conteúdo
+  na origem e no destino. Ela roda tanto no piloto como na carga completa.
+- Confira o espaço de cada tabela, incluindo índices, e a medida **Disk** no painel
+  do Supabase. Não basta multiplicar o tamanho do piloto para garantir que tudo caiba.
+- Após `full`, execute as [consultas de validação de 2025](../../04_Analytics/consultas_validacao_2025.sql)
+  e compare os resultados com a base anterior.
+
+## Quando a carga encontra dados anteriores
+
+Se a chave já existe e os campos mudaram, `ON CONFLICT DO UPDATE` atualiza o registro.
+Se nada mudou, ele não é regravado. O exportador não apaga registros antigos.
+
+Se o destino tiver uma chave que não existe na fonte, o preflight interrompe a
+carga antes da escrita. Isso evita manter registros que ficaram fora do novo
+conjunto. Confira a origem da diferença e prepare uma base separada para a recarga.
+A regra também vale quando uma tabela da fonte está vazia.
+
+## Se houver falha
+
+O banco confirma a gravação a cada 5.000 registros. Uma falha interrompe a carga,
+mas não desfaz os lotes já confirmados. Retome apenas com a mesma origem e depois
+de corrigir a causa. A aplicação só deve usar a base quando a carga e sua conferência
+estiverem completas.
+
+Não reconstrua Silver ou Gold durante a exportação. O preflight usa memória do
+driver para guardar as chaves de uma tabela por vez; a carga usa cursores para
+ler os registros aos poucos.
+
+O monitoramento consulta o tamanho do banco e do **WAL**, o registro de alterações
+mantido pelo PostgreSQL. Essa soma não mede todo o disco físico. Os limites do
+notebook são proteções locais; confira também o painel do Supabase.
+
+Não publique senhas, tokens, scripts de cadastro de secrets ou saídas com
+credenciais no GitHub.
