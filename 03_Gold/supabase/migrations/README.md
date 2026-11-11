@@ -1,36 +1,55 @@
-# Supabase Migration — LegisAnalytica Gold
+# Como preparar as tabelas no PostgreSQL
 
-Esta pasta contém o(s) script(s) SQL de criação da estrutura relacional Gold para o Supabase/PostgreSQL, idêntica ao modelo de dados do Databricks Gold Layer.
+Uma **migration** é um script SQL que cria ou altera a estrutura do banco.
+Os scripts desta pasta são para PostgreSQL/Supabase. Execute-os no SQL Editor
+do Supabase, não em uma célula SQL do Databricks.
 
-## Arquivos
+## O que cada arquivo faz
 
-- `001_initial_schema_supabase.sql` — Migration SQL: cria as 26 tabelas (ordem topológica em 6 níveis), 60 FKs, 30 índices, 2 constraints UNIQUE (`lote`), 26 comentários e os tipos nativos do PostgreSQL (TEXT, NUMERIC, etc.), além das regras de dependência das FKs.
-- `002_add_autoria_principal.sql` — Adiciona a coluna `autoria.principal`, que diferencia o autor principal dos demais signatários/apoiadores.
+| Arquivo | Função |
+|---|---|
+| `001_initial_schema_supabase.sql` | Cria as 26 tabelas, suas chaves, relações e índices em uma base vazia. |
+| `002_add_autoria_principal.sql` | Adiciona o campo que diferencia o autor principal dos demais signatários. Também cria o índice usado nas consultas. |
+| `003_preservar_movimentos_e_contexto.sql` | Adiciona documento de origem, restituição, resultado original da votação e partido/UF do voto. |
 
-## Uso
+Chave primária (**PK**) identifica um registro. Chave estrangeira (**FK**) garante
+que uma referência a outra tabela exista. Por exemplo, cada voto deve apontar
+para uma votação. A migration inicial define 60 dessas relações.
 
-1. Abra o painel SQL do Supabase e **execute este script (`001_initial_schema_supabase.sql`)** no schema `public` vazio (ou desejado) antes de qualquer exportação de dados.
-2. Se o schema já existir, execute também `002_add_autoria_principal.sql`.
-3. Nunca execute este SQL no Databricks/Spark SQL — é exclusivo para PostgreSQL.
-4. Caso precise reinstalar, primeiro delete as tabelas manualmente (ou descomente os blocos de DROP indicados no topo do SQL).
+## Para a primeira carga corrigida
 
-### Base já existente
+1. Prepare uma base separada, preservando a anterior para comparação.
+2. Execute `001_initial_schema_supabase.sql` no schema `public` vazio. Schema é
+   o agrupamento de tabelas; `public` é o usado pela aplicação.
+3. Execute `002_add_autoria_principal.sql` e depois
+   `003_preservar_movimentos_e_contexto.sql`. Esses dois scripts podem ser
+   executados novamente sem duplicar as colunas.
+4. Siga o [guia da exportação](../../export/README.md): `prepare`, `pilot` e `full`.
 
-Depois de aplicar a `002`, preencha a coluna `principal` na base atual:
+O exportador não executa migrations automaticamente. Não use os blocos `DROP`
+do script inicial para testar a atualização de uma base com dados: eles apagam tabelas.
+
+## Se a estrutura do banco já existir
+
+A `001` é para uma base vazia. Em uma base existente, as alterações de estrutura
+são feitas pelas migrations `002` e `003`.
+
+A `003` só acrescenta campos: não apaga dados, não corrige resultados de votação
+já classificados e não recupera movimentos descartados em cargas anteriores.
+Portanto, aplicá-la não basta para corrigir a base antiga. Reconstrua Silver e Gold
+a partir da Bronze preservada e carregue o resultado em uma base separada.
+
+Para preencher apenas a autoria principal na base existente, após aplicar a `002`:
 
 ```powershell
-cd 05_Aplicacao\backend
+cd 05_Aplicacao/backend
 go run ./cmd/backfill-autoria
 ```
 
-O comando:
-- marca como principal o primeiro signatário da Câmara (`ordem_assinatura = 1`);
-- consulta a API de autorias do Senado e marca como principal apenas quem tem `IndicadorAutorPrincipal = "Sim"`;
-- é idempotente e pode ser executado novamente.
+Esse comando **altera a base configurada no `.env`**. Na Câmara, marca o primeiro
+signatário como principal (`ordem_assinatura = 1`). No Senado, consulta a API e
+usa `IndicadorAutorPrincipal = "Sim"`. Pode ser executado novamente.
+Se você reconstruir a Gold e refizer a exportação, o notebook Gold já preenche esse campo.
 
-Também é possível refazer a carga Gold/exportação: o notebook `03_Gold/LegisAnalytica - Gold Layer DDL.ipynb` já grava a coluna `principal` no schema Gold.
-
-**Importante:**
-- A exportação dos dados só deve ser feita após a criação correta dessa estrutura!
-- O script aqui é referência única para criação/reinstalação do modelo LegisAnalytica Gold fora do Databricks.
-- A aplicação é manual, no SQL Editor do Supabase; este repositório versiona o script como fonte de referência (o notebook de exportação o aplica automaticamente apenas como fallback, em banco vazio).
+Consulte [Como os dados são tratados e conferidos](../../METODOLOGIA_DADOS.md)
+para entender a mudança de IDs e conferir a nova carga antes de usar a aplicação.

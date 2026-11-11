@@ -37,6 +37,10 @@ A partir da camada Gold, o desenvolvimento se divide em frentes complementares:
 
 ## Tecnologias e recursos
 
+As regras do recorte de 2025, granularidade, cobertura, indicadores e recarga estão
+documentadas em [Metodologia dos dados](03_Gold/METODOLOGIA_DADOS.md).
+Antes de contribuir com consultas ou transformações, consulte essas definições.
+
 - Databricks
 - Computação em nuvem
 - Python

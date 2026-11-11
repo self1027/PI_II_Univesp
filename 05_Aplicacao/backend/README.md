@@ -6,6 +6,29 @@ Esta pasta contém o backend da aplicação e os endpoints utilizados para dispo
 
 Credenciais, tokens e outras informações sensíveis não devem ser versionados no GitHub.
 
+## O que muda nos dados entregues pela API
+
+Aplicar as migrations `002` e `003` junto desta versão do backend. A primeira carga
+corrigida deve usar base separada, conforme a
+[metodologia](../../03_Gold/METODOLOGIA_DADOS.md).
+
+- `id_despesa` identifica um movimento. Na Câmara, o ID técnico muda em relação à
+  carga antiga; `id_documento` preserva o documento original e pode se repetir.
+- `valor_documento`, `valor_glosa`, `valor_liquido` e `valor_restituicao` preservam
+  valores nulos na listagem. A exportação exige valor líquido conhecido.
+- `Votacao.aprovacao` pode ser `true`, `false` ou `null`. `resultado_original`
+  preserva o dado de origem. Isso não informa aprovação final de uma proposição.
+- `Vote.partido` e `Vote.uf` são os valores informados no registro do voto.
+- `tem_votacao=false` significa ausência de vínculo na base, não prova de que a
+  proposição nunca foi votada.
+- `media_mensal` continua sendo total dividido pelos meses com registros.
+- Listas podem conter contexto de outros anos. Os indicadores anuais precisam dos
+  filtros definidos na metodologia; as consultas existentes não viram filtros
+  anuais implicitamente.
+
+O frontend não foi alterado nesta etapa; seus textos sobre aprovação, contagem de
+despesas e ausência de vínculos precisam considerar essas definições na próxima etapa.
+
 ## Fonte de dados
  
  O backend consome as tabelas da camada Gold no PostgreSQL.
@@ -38,7 +61,7 @@ API para acompanhamento de dados legislativos, consumindo a camada Gold de dados
 ## Como subir a aplicação
  
 ### Pré-requisitos
-- Go 1.21+
+- Go 1.27.3 ou posterior, conforme `go.mod`
 - Senha para acesso ao DB no supabase
 
 ### Instalação e Execução
@@ -61,7 +84,7 @@ Defina `CORS_ALLOWED_ORIGIN` com a origem do frontend (protocolo, domínio e por
 
 4. Execute a aplicação:
 ```bash
-go run main.go
+go run ./cmd/api
 ```
 
 O servidor estará disponível em `http://localhost:8080/graphql`.

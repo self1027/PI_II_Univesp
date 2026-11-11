@@ -42,4 +42,7 @@ As 26 tabelas são criadas em 6 níveis de dependência de FK:
 - FKs com colunas NULLABLE usam `MATCH SIMPLE` (padrão PostgreSQL)
 - `lote`: constraints `UNIQUE` adicionais em `entidade_fonte` e em `hash_sha256`
 - Índices criados em todas as colunas de FK não cobertas pelo prefixo da PK
-- A aplicação é manual, no SQL Editor do Supabase; este repositório versiona o script como referência (o notebook de exportação o aplica automaticamente apenas como fallback, em banco vazio)
+- A aplicação é manual, no SQL Editor do Supabase; o exportador não executa DDL.
+
+Consulte o [README das migrations](migrations/README.md) para aplicar também as
+migrations `002` e `003` e preparar a primeira carga corrigida em base separada.

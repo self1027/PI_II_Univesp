@@ -562,6 +562,10 @@ components:
           type: string
         id_despesa:
           type: string
+          description: Identificador do movimento, sem equivalência ao documento original.
+        id_documento:
+          type: string
+          nullable: true
         id_parlamentar:
           type: string
         ano:
@@ -577,12 +581,19 @@ components:
         valor_documento:
           type: number
           format: double
+          nullable: true
         valor_glosa:
           type: number
           format: double
+          nullable: true
         valor_liquido:
           type: number
           format: double
+          nullable: true
+        valor_restituicao:
+          type: number
+          format: double
+          nullable: true
         tipo:
           allOf:
             - $ref: '#/components/schemas/ExpenseType'
@@ -623,6 +634,11 @@ components:
           type: string
         aprovacao:
           type: boolean
+          nullable: true
+          description: Resultado desta votação; null significa desconhecido, sem inferir a aprovação final da proposição.
+        resultado_original:
+          type: string
+          nullable: true
         descricao:
           type: string
         votos_sim:
@@ -657,6 +673,14 @@ components:
           type: string
         codigo_voto:
           type: string
+        partido:
+          type: string
+          nullable: true
+          description: Partido informado no registro do voto.
+        uf:
+          type: string
+          nullable: true
+          description: UF informada no registro do voto.
         votacao:
           allOf:
             - $ref: '#/components/schemas/Votacao'
