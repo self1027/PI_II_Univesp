@@ -18,10 +18,12 @@ func (Proposition) TableName() string {
 }
 
 type Vote struct {
-	House        string `gorm:"column:casa" json:"casa"`
-	IDVote       string `gorm:"column:id_votacao;primaryKey" json:"id_votacao"`
-	IDPolitician string `gorm:"column:id_parlamentar" json:"id_parlamentar"`
-	VoteCode     string `gorm:"column:codigo_voto" json:"codigo_voto"`
+	House        string  `gorm:"column:casa" json:"casa"`
+	IDVote       string  `gorm:"column:id_votacao;primaryKey" json:"id_votacao"`
+	IDPolitician string  `gorm:"column:id_parlamentar" json:"id_parlamentar"`
+	VoteCode     string  `gorm:"column:codigo_voto" json:"codigo_voto"`
+	Party        *string `gorm:"column:partido" json:"partido"`
+	State        *string `gorm:"column:uf" json:"uf"`
 }
 
 func (Vote) TableName() string {
@@ -39,15 +41,17 @@ func (VoteType) TableName() string {
 }
 
 type Votacao struct {
-	House       string    `gorm:"column:casa;primaryKey" json:"casa"`
-	IDVote      string    `gorm:"column:id_votacao;primaryKey" json:"id_votacao"`
-	VoteDate    time.Time `gorm:"column:data_votacao" json:"data_votacao"`
-	Organ       string    `gorm:"column:sigla_orgao" json:"sigla_orgao"`
-	Approval    bool      `gorm:"column:aprovacao" json:"aprovacao"`
-	Description string    `gorm:"column:descricao" json:"descricao"`
-	YesVotes    int       `gorm:"column:votos_sim" json:"votos_sim"`
-	NoVotes     int       `gorm:"column:votos_nao" json:"votos_nao"`
-	OtherVotes  int       `gorm:"column:votos_outros" json:"votos_outros"`
+	House    string    `gorm:"column:casa;primaryKey" json:"casa"`
+	IDVote   string    `gorm:"column:id_votacao;primaryKey" json:"id_votacao"`
+	VoteDate time.Time `gorm:"column:data_votacao" json:"data_votacao"`
+	Organ    string    `gorm:"column:sigla_orgao" json:"sigla_orgao"`
+	// nil preserva o resultado desconhecido, que é diferente de rejeição (false).
+	Approval    *bool   `gorm:"column:aprovacao" json:"aprovacao"`
+	Result      *string `gorm:"column:resultado_original" json:"resultado_original"`
+	Description string  `gorm:"column:descricao" json:"descricao"`
+	YesVotes    int     `gorm:"column:votos_sim" json:"votos_sim"`
+	NoVotes     int     `gorm:"column:votos_nao" json:"votos_nao"`
+	OtherVotes  int     `gorm:"column:votos_outros" json:"votos_outros"`
 }
 
 func (Votacao) TableName() string {

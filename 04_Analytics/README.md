@@ -4,6 +4,17 @@ Responsável: Vitória
 
 Esta pasta contém os códigos utilizados para geração de indicadores e análises a partir dos dados consolidados na camada Gold.
 
+## Consultas para conferir os dados
+
+`consultas_validacao_2025.sql` contém consultas somente de leitura para PostgreSQL:
+separa fatos de 2025 do contexto histórico, expõe resultados desconhecidos,
+meses sem registros e despesas sem vínculo cadastral. Execute após uma carga `full`
+reconciliada; o piloto técnico não deve alimentar indicadores.
+
+As definições, denominadores e limitações estão em
+[Metodologia dos dados](../03_Gold/METODOLOGIA_DADOS.md). As sugestões de indicadores
+abaixo são possibilidades de análise, não métricas já implementadas ou validadas.
+
 ## Entrada
 - Dados da camada Gold
 

@@ -227,24 +227,26 @@ func (b *schemaBuilder) buildExpenseTypes() {
 			"meses_com_despesas": &graphql.Field{Type: graphql.Int},
 			"ano_inicio":         &graphql.Field{Type: graphql.Int},
 			"ano_fim":            &graphql.Field{Type: graphql.Int},
-			"media_mensal":       &graphql.Field{Type: graphql.Float},
+			"media_mensal":       &graphql.Field{Type: graphql.Float, Description: "Total dividido pelos meses com registros. Não é média por mês de exercício nem pelos 12 meses do ano."},
 		},
 	})
 
 	b.expenseType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "Expense",
 		Fields: graphql.Fields{
-			"casa":            &graphql.Field{Type: graphql.String},
-			"id_despesa":      &graphql.Field{Type: graphql.String},
-			"id_parlamentar":  &graphql.Field{Type: graphql.String},
-			"ano":             &graphql.Field{Type: graphql.Int},
-			"mes":             &graphql.Field{Type: graphql.Int},
-			"data_emissao":    &graphql.Field{Type: graphql.String},
-			"codigo_tipo":     &graphql.Field{Type: graphql.String},
-			"cnpj_cpf":        &graphql.Field{Type: graphql.String},
-			"valor_documento": &graphql.Field{Type: graphql.Float},
-			"valor_glosa":     &graphql.Field{Type: graphql.Float},
-			"valor_liquido":   &graphql.Field{Type: graphql.Float},
+			"casa":              &graphql.Field{Type: graphql.String},
+			"id_despesa":        &graphql.Field{Type: graphql.String},
+			"id_documento":      &graphql.Field{Type: graphql.String, Description: "Documento de origem. Pode estar associado a vários movimentos de despesa."},
+			"id_parlamentar":    &graphql.Field{Type: graphql.String},
+			"ano":               &graphql.Field{Type: graphql.Int},
+			"mes":               &graphql.Field{Type: graphql.Int},
+			"data_emissao":      &graphql.Field{Type: graphql.String},
+			"codigo_tipo":       &graphql.Field{Type: graphql.String},
+			"cnpj_cpf":          &graphql.Field{Type: graphql.String},
+			"valor_documento":   &graphql.Field{Type: graphql.Float},
+			"valor_glosa":       &graphql.Field{Type: graphql.Float},
+			"valor_liquido":     &graphql.Field{Type: graphql.Float},
+			"valor_restituicao": &graphql.Field{Type: graphql.Float},
 			"tipo": &graphql.Field{
 				Type: b.expenseKindType,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {

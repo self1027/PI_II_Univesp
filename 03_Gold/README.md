@@ -43,12 +43,18 @@ A camada Gold implementa o modelo relacional LegisAnalytica v5, com 26 tabelas n
 
 **Impacto:** `proposicao` 264.078→248.560; `votacao_proposicao` 2.020→1.040; `total_publicado` SENADO 29.193→13.675.
 
-## Limitações conhecidas (para PostgreSQL/Supabase)
+## Limitações observadas na carga anterior (para PostgreSQL/Supabase)
 
 - `despesa.codigo_tipo`: 329 registros do Senado com `NULL` (API do Senado não envia o tipo). FK `despesa→tipo_despesa` deve ser **nullable**.
 - `despesa.id_parlamentar` (Câmara): é código **CEAP**, não FK direta para `parlamentar`. Mapeamento via `identificador_parlamentar` (`sistema='CEAP'`). 216 CEAPs sem correspondência → `id_parlamentar=NULL`.
 - Todas as colunas são `nullable` no schema Gold (sem constraints PK/FK a nível DB). Constraints serão criadas no PostgreSQL.
 - `votacao_proposicao` (SENADO): apenas 7 registros (votações que referenciam matérias válidas da 57ª legislatura).
+
+Essas contagens são históricas, não resultados da transformação corrigida.
+O vínculo CEAP agora usa `ideCadastro`, sem comparação por nome. A despesa da
+Câmara passa a representar um movimento e preserva `id_documento` separadamente.
+Resultados de votação desconhecidos permanecem nulos, com o resultado original
+preservado. A Gold também mantém partido e UF do registro de voto.
 
 ## Migração para Supabase (PostgreSQL)
 
@@ -60,9 +66,13 @@ A camada Gold pode ser exportada para o PostgreSQL do Supabase para consumo pela
 | `supabase/migrations/` | `001_initial_schema_supabase.sql` | Esquema PostgreSQL: 26 tabelas, 60 FKs, 30 índices, 2 UNIQUEs |
 
 **Fluxo de migração:**
-- O esquema é criado no Supabase executando `001_initial_schema_supabase.sql` diretamente no SQL Editor (aplicação manual; o script é versionado aqui como referência). O notebook de exportação também verifica a existência do schema e o aplica automaticamente caso o banco esteja vazio.
-- O notebook `EXPORT_supabase_postgresql.ipynb` opera em três modos, controlados pela variável `EXPORT_MODE`: `prepare` (padrão, sem gravação), `pilot` (apenas `public.casa`) e `full` (as 26 tabelas). O recorte de exportação é **2025 completo** (01/01/2025 a 31/12/2025), preservando entidades anteriores necessárias às FKs.
-- Antes da primeira escrita, o notebook valida as constraints da migration (NOT NULL, PKs, UNIQUE, VARCHAR) e o schema de destino; após a carga, compara contagens por tabela e executa 46 verificações de integridade referencial.
+- O schema é preparado manualmente conforme o [README das migrations](supabase/migrations/README.md). O exportador nunca aplica DDL, inclusive em banco vazio.
+- A exportação opera em `prepare` (sem escrita), `pilot` (subconjuntos técnicos por Casa/mês com relacionamentos) e `full` (recorte completo). O ano analisado continua **2025**, com entidades relacionadas de outros anos para contexto.
+- Antes da escrita, verifica chaves, FKs, valores e compatibilidade do destino. Depois, reconcilia conteúdo, contagens e FKs. Registros existentes são atualizados; chaves extras impedem a carga, sem remoção automática.
+- O lote registra versão Delta e hash do conteúdo da entidade Silver. Não comprova, sozinho, cobertura completa da fonte.
+
+Consulte [Metodologia dos dados](METODOLOGIA_DADOS.md) para definições dos indicadores,
+limitações de cobertura, mudanças de IDs e procedimento de recarga em base separada.
 
 **Pré-requisitos:** Secret Scope `legisanalytica_supabase` no Databricks com chaves `jdbc_url`, `user`, `password`.
 

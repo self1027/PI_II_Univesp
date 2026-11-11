@@ -29,7 +29,7 @@ func (r *repository) expensesByPoliticianQuery(ctx context.Context, id string, h
 	query := r.db.WithContext(ctx).
 		Table("public.despesa AS d").
 		// Na Câmara, despesa.id_parlamentar é o código CEAP e precisa ser
-		// convertido para o id da API via identificador_parlamentar.
+		// convertido via identificador_parlamentar, preenchido com ideCadastro.
 		// No Senado, despesa.id_parlamentar já é o id da API.
 		Joins(`LEFT JOIN public.identificador_parlamentar ip
                ON ip.casa = d.casa
@@ -54,9 +54,10 @@ func (r *repository) GetExpensesByPolitician(ctx context.Context, id string, hou
 	err := r.expensesByPoliticianQuery(ctx, id, house, typeCode).
 		Select(`
             d.*,
-            COALESCE(v.valor_documento, 0) AS valor_documento,
-            COALESCE(v.valor_glosa, 0) AS valor_glosa,
-            COALESCE(v.valor_liquido, 0) AS valor_liquido
+            v.valor_documento,
+            v.valor_glosa,
+            v.valor_liquido,
+            v.valor_restituicao
         `).
 		Joins("LEFT JOIN public.valor_despesa v ON v.casa = d.casa AND v.id_despesa = d.id_despesa").
 		Order("d.data_emissao DESC NULLS LAST, d.id_despesa DESC").
@@ -101,7 +102,7 @@ func (r *repository) GetExpenseSummaryByPolitician(ctx context.Context, id strin
 		Select(`
             COALESCE(t.descricao, d.codigo_tipo, 'Categoria não informada') AS categoria,
             COUNT(*) AS quantidade,
-            COALESCE(SUM(COALESCE(v.valor_liquido, 0)), 0)::float8 AS total
+            COALESCE(SUM(v.valor_liquido), 0)::float8 AS total
         `).
 		Joins("LEFT JOIN public.valor_despesa v ON v.casa = d.casa AND v.id_despesa = d.id_despesa").
 		Joins("LEFT JOIN public.tipo_despesa t ON t.casa = d.casa AND t.codigo_tipo = d.codigo_tipo").
@@ -125,7 +126,7 @@ func (r *repository) GetExpenseStatisticsByPolitician(ctx context.Context, id st
 	err := query.
 		Select(`
             COUNT(*) AS total_despesas,
-            COALESCE(SUM(COALESCE(v.valor_liquido, 0)), 0)::float8 AS total_liquido,
+            COALESCE(SUM(v.valor_liquido), 0)::float8 AS total_liquido,
             COUNT(DISTINCT (d.ano, d.mes)) AS meses_com_despesas,
             COALESCE(MIN(d.ano), 0) AS ano_inicio,
             COALESCE(MAX(d.ano), 0) AS ano_fim
