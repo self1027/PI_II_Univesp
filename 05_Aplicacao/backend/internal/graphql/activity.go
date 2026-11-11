@@ -231,22 +231,23 @@ func (b *schemaBuilder) buildActivityTypes() {
 			"ano":               &graphql.Field{Type: graphql.Int},
 			"ementa":            &graphql.Field{Type: graphql.String},
 			"data_apresentacao": &graphql.Field{Type: graphql.String},
-			"tem_votacao":       &graphql.Field{Type: graphql.Boolean},
+			"tem_votacao":       &graphql.Field{Type: graphql.Boolean, Description: "Existe votação vinculada na base; false não comprova ausência de votação na fonte."},
 		},
 	})
 
 	b.votacaoType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "Votacao",
 		Fields: graphql.Fields{
-			"casa":         &graphql.Field{Type: graphql.String},
-			"id_votacao":   &graphql.Field{Type: graphql.String},
-			"data_votacao": &graphql.Field{Type: graphql.String},
-			"sigla_orgao":  &graphql.Field{Type: graphql.String},
-			"aprovacao":    &graphql.Field{Type: graphql.Boolean},
-			"descricao":    &graphql.Field{Type: graphql.String},
-			"votos_sim":    &graphql.Field{Type: graphql.Int},
-			"votos_nao":    &graphql.Field{Type: graphql.Int},
-			"votos_outros": &graphql.Field{Type: graphql.Int},
+			"casa":               &graphql.Field{Type: graphql.String},
+			"id_votacao":         &graphql.Field{Type: graphql.String},
+			"data_votacao":       &graphql.Field{Type: graphql.String},
+			"sigla_orgao":        &graphql.Field{Type: graphql.String},
+			"aprovacao":          &graphql.Field{Type: graphql.Boolean, Description: "Resultado desta votação: true, false ou null quando desconhecido. Não indica aprovação final da proposição."},
+			"resultado_original": &graphql.Field{Type: graphql.String},
+			"descricao":          &graphql.Field{Type: graphql.String},
+			"votos_sim":          &graphql.Field{Type: graphql.Int},
+			"votos_nao":          &graphql.Field{Type: graphql.Int},
+			"votos_outros":       &graphql.Field{Type: graphql.Int},
 			"proposicoes": &graphql.Field{
 				Type: graphql.NewList(b.propositionType),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
@@ -276,6 +277,8 @@ func (b *schemaBuilder) buildActivityTypes() {
 			"id_votacao":     &graphql.Field{Type: graphql.String},
 			"id_parlamentar": &graphql.Field{Type: graphql.String},
 			"codigo_voto":    &graphql.Field{Type: graphql.String},
+			"partido":        &graphql.Field{Type: graphql.String, Description: "Partido informado no registro do voto."},
+			"uf":             &graphql.Field{Type: graphql.String, Description: "UF informada no registro do voto."},
 			"votacao": &graphql.Field{
 				Type: b.votacaoType,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {

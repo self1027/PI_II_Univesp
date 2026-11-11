@@ -352,6 +352,7 @@ CREATE TABLE public.votacao (
     data_votacao DATE,
     sigla_orgao  TEXT,
     aprovacao    BOOLEAN,
+    resultado_original TEXT,
     descricao    TEXT,
     votos_sim    INTEGER,
     votos_nao    INTEGER,
@@ -371,6 +372,7 @@ CREATE TABLE public.votacao (
 CREATE TABLE public.despesa (
     casa            VARCHAR(10)  NOT NULL,
     id_despesa      TEXT  NOT NULL,
+    id_documento    TEXT,
     id_parlamentar  TEXT,
     ano             INTEGER     NOT NULL,
     mes             INTEGER     NOT NULL,
@@ -454,6 +456,7 @@ CREATE TABLE public.valor_despesa (
     valor_documento NUMERIC(12,2),
     valor_glosa     NUMERIC(12,2),
     valor_liquido   NUMERIC(12,2),
+    valor_restituicao NUMERIC(12,2),
     id_lote         TEXT    NOT NULL,
     CONSTRAINT pk_valor_despesa PRIMARY KEY (casa, id_despesa),
     CONSTRAINT fk_valor_desp_casa FOREIGN KEY (casa)
@@ -476,6 +479,8 @@ CREATE TABLE public.voto (
     id_votacao      TEXT NOT NULL,
     id_parlamentar  TEXT NOT NULL,
     codigo_voto     TEXT,
+    partido         TEXT,
+    uf              VARCHAR(2),
     id_lote         TEXT NOT NULL,
     CONSTRAINT pk_voto PRIMARY KEY (casa, id_votacao, id_parlamentar),
     CONSTRAINT fk_voto_casa FOREIGN KEY (casa)
